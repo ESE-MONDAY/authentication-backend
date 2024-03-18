@@ -16,11 +16,18 @@ const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordRegex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 
 
-//Sign up
+function generateUniqueUsername(name, email) {
+    const parts = email.split("@");
+    const username = parts[0];
+    return username;
+}
 
+
+//Sign up
 
 router.post("/register", async (req,res, next) =>{
     let {name, email, password} = req.body;
+    const username = generateUniqueUsername(name, email);
     if(!emailRegex.test(email)){
         res.json({ emailError: "Email is not in the right format" }).status(400);
     }else if(!passwordRegex.test(password)){
@@ -32,7 +39,7 @@ router.post("/register", async (req,res, next) =>{
         if (existingUser) {
             return res.json({msg: "Failed! User already Exists"}).status(400)
           }   
-        const user = await users.create({ email, password,name, created_at: Date.now(), isVerified: false,});  
+        const user = await users.create({ email, password,name,username, created_at: Date.now(), isVerified: false,});  
         const token = createSecretToken(user._id);
         res.cookie("token", token, {
           withCredentials: true,
