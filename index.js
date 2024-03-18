@@ -18,7 +18,7 @@ app.use(express.urlencoded({extended: false}))
 
 app.use(
     cors({
-      origin: ["http://localhost:4000"],
+      origin: ["http://localhost:4000", "https://authentication-backend-lc49.onrender.com"],
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     })
