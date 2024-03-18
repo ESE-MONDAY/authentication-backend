@@ -32,7 +32,7 @@ router.post("/register", async (req,res, next) =>{
         if (existingUser) {
             return res.json({msg: "Failed! User already Exists"}).status(400)
           }   
-        const user = await users.create({ email, password,name, created_acdt: Date.now(), isVerified: false, username: "",   address: "", phone: "", date_of_birth: "", avatar: ""});  
+        const user = await users.create({ email, password,name, created_at: Date.now(), isVerified: false,});  
         const token = createSecretToken(user._id);
         res.cookie("token", token, {
           withCredentials: true,
