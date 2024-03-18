@@ -1,5 +1,8 @@
 const router = require("express").Router();
-const bcrypt = require("bcryptjs")
+const bcrypt = require("bcryptjs");
+const { createSecretToken } = require("../config/secretToken");
+
+const auth = require("../middleware.js")
 
 const users = require("../models/user")
 
@@ -16,75 +19,29 @@ const passwordRegex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 //Sign up
 
 
-router.post("/register", (req,res) =>{
+router.post("/register", async (req,res, next) =>{
     let {name, email, password} = req.body;
-    if(name && email && password){
-        name = name.trim();
-        email = email.trim();
-        password = password.trim();
-    }
-    
-    if (name === "" || email === "" || password === "") {
-        let response = {};
-    
-        if (name === "") {
-            response.nameError = "Name is required";
-        }
-        if (email === "") {
-            response.emailError = "Email is required";
-        }
-        if (password === "") {
-            response.passwordError = "Password is required";
-        }
-    
-        res.json(response).status(400);
-    }else if(!emailRegex.test(email)){
+    if(!emailRegex.test(email)){
         res.json({ emailError: "Email is not in the right format" }).status(400);
     }else if(!passwordRegex.test(password)){
         res.json({ 
             passwordError: "Password must be at least 8 characters long and contain at least one digit, one letter, and one special character" ,
             password}).status(400);
-    }else if(!name.length > 5){
-        res.json({nameError: "name too short"}).status(400)
     }else{
-        users.find({email}).then(result => {
-            if(result.length){
-                res.json({msg: "Failed! User already Exists"}).status(40)
-
-            }else{
-           
-                bcrypt.hash(password, 10).then(encryptedPassword =>{
-                    const newUser = new users({
-                        name: name,
-                        email: email,
-                        password: encryptedPassword 
-                    })
-                    newUser.save().then(result =>{
-                        res.json({
-                            msg: "User created Successfully",
-                            data: result
-                        }).status(200)
-
-
-                    }).catch(err => {
-                        console.error("error creating user" + err)
-                        res.json({
-                            msg: "Error creating user account"
-                        }).status(500)
-                    })
-
-                }).catch(err =>{
-                    console.error(err)
-                    res.json({
-                        msg: "Service Failed try again later"
-                    }).status(500)
-                })
-            }
-
-        }).catch(err =>{
-            console.err(err);
-            res.json({msg: "An err occured while checking user status"}).status(500)
-        })
+        const existingUser = await users.findOne({email})
+        if (existingUser) {
+            return res.json({msg: "Failed! User already Exists"}).status(400)
+          }   
+        const user = await users.create({ email, password,name, created_acdt: Date.now(), isVerified: false, username: "",   address: "", phone: "", date_of_birth: "", avatar: ""});  
+        const token = createSecretToken(user._id);
+        res.cookie("token", token, {
+          withCredentials: true,
+          httpOnly: false,
+        });
+        res
+          .status(201)
+          .json({ message: "User Created in successfully", success: true, user });
+        next();
 
     }
     
@@ -92,50 +49,101 @@ router.post("/register", (req,res) =>{
 
 
 //Sign in
-router.post("/login", (req,res) =>{
-    let {email, password} = req.body;
-    email.trim()
-    password.trim()
-    if( email == "" || password == ""){
-        let response = {};
-        if (email === "") {
-            response.emailError = "Email is required";
+router.post("/login", async (req, res, next) => {
+    try {
+        const { email, password } = req.body;
+        const user = await users.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({ msg: "Incorrect email or password" });
         }
-        if (password === "") {
-            response.passwordError = "Password is required";
+
+        const auth = await bcrypt.compare(password, user.password);
+        if (!auth) {
+            return res.status(401).json({ msg: "Incorrect password" });
         }
-        
-    res.json(response);
-    }else{
-        users.find({email}).then(data => {
-            if(data){
-                const hashedPassword = data[0].password
-                bcrypt.compare(password, hashedPassword).then(result => {
-                    if(result){
-                        res.json({
-                            msg: "Login Successful",
-                            data: {
-                                name: data[0].name,
-                                email: data[0].email
-                            }
-                        }).status(200)
 
-                    }else{
-                        res.json({
-                            msg: "Incorrect Password",
-                        }).status(400)
-
-                    }
-
-                }).catch(err => {
-                    res.json({msg: "An error occures in password validation" }).json(400) 
-                })
-            }
-
-        }).catch(err =>{
-            res.json({msg: "An error occured, couldn't find user with that credential" }).json(500)
-        })
+        const token = createSecretToken(user._id);
+        res.cookie("token", token, {
+            withCredentials: true,
+            httpOnly: false,
+        });
+        res.status(200).json({ message: "User logged in successfully", success: true, user });
+    } catch (err) {
+        console.error("Error occurred during login:", err);
+        res.status(500).json({ msg: "An error occurred during login" });
     }
-})
+});
+
+
+router.post("/profile", auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { username, address, phone, date_of_birth, avatar } = req.body;
+
+        if (username) {
+            const existingUsername = await users.findOne({ username });
+            if (existingUsername && existingUsername.id !== userId) {
+                return res.status(400).json({ msg: "Username already exists" });
+            }
+        }
+        if (phone) {
+            const existingPhone = await users.findOne({ phone });
+            if (existingPhone && existingPhone.id !== userId) {
+                return res.status(400).json({ msg: "Phone number already exists" });
+            }
+        }
+
+        // Update user profile
+        const updatedUser = {
+            username,
+            address,
+            phone,
+            date_of_birth,
+            avatar
+        };
+
+        const updatedUserProfile = await users.findByIdAndUpdate(userId, updatedUser, { new: true });
+
+        if (!updatedUserProfile) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+
+        res.status(200).json({ msg: "Profile updated successfully", user: updatedUserProfile });
+    } catch (err) {
+        console.error("Error updating user profile:", err);
+        res.status(500).json({ msg: "An error occurred during profile update" });
+    }
+});
+
+router.delete("/profile", auth, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        const deletedUser = await users.findByIdAndDelete(userId);
+
+        if (!deletedUser) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+        res.clearCookie("token");
+
+        res.status(200).json({ msg: "Profile deleted successfully" });
+    } catch (err) {
+        console.error("Error deleting user profile:", err);
+        res.status(500).json({ msg: "An error occurred during profile deletion" });
+    }
+});
+
+router.post("/logout",auth, (req, res) => {
+    try {
+        res.clearCookie("token");
+        res.status(200).json({ msg: "Logout successful" });
+    } catch (err) {
+        console.error("Error logging out:", err);
+        res.status(500).json({ msg: "An error occurred during logout" });
+    }
+});
+
+
 
 module.exports =router;
