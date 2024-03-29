@@ -5,7 +5,10 @@ const { createSecretToken } = require("../config/secretToken");
 const auth = require("../middleware.js")
 
 const users = require("../models/user")
+const Wallet = require("../models/wallet")
 
+const generateWallet = require("../config/generateWallet");
+const sendVerificationEmail = require("../config/sendVerificaionEmail");
 
 router.get("/", (req,res) =>{
     res.send("user route called")
@@ -22,39 +25,87 @@ function generateUniqueUsername(name, email) {
     return username;
 }
 
+const generateVerificationToken = () => {
+    const token = Math.floor(100000 + Math.random() * 900000);
+    return token.toString(); 
+  };
+
+
+
+const verificationTokens = {};
+
+// Function to save verification token
+const saveVerificationToken = (email, token) => {
+    verificationTokens[email] = token;
+};
+const getVerificationToken = (email) => {
+    return verificationTokens[email];
+};
+
+// Function to clear verification token
+const clearVerificationToken = (email) => {
+    delete verificationTokens[email];
+};
+
+
 
 //Sign up
 
-router.post("/register", async (req,res, next) =>{
-    let {name, email, password} = req.body;
-    const username = generateUniqueUsername(name, email);
-    if(!emailRegex.test(email)){
-        res.json({ emailError: "Email is not in the right format" }).status(400);
-    }else if(!passwordRegex.test(password)){
-        res.json({ 
-            passwordError: "Password must be at least 8 characters long and contain at least one digit, one letter, and one special character" ,
-            password}).status(400);
-    }else{
-        const existingUser = await users.findOne({email})
-        if (existingUser) {
-            return res.json({msg: "Failed! User already Exists"}).status(400)
-          }   
-        const user = await users.create({ email, password,name,username, created_at: Date.now(), isVerified: false,});  
-        const token = createSecretToken(user._id);
-        res.cookie("token", token, {
-          withCredentials: true,
-          httpOnly: false,
-        });
-        res
-          .status(201)
-          .json({ message: "User Created in successfully", success: true, user });
-        next();
+router.post("/register", async (req, res) => {
+    try {
+      let { name, email, password } = req.body;
+      const username = generateUniqueUsername(name, email);
+  
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Email is not in the right format" });
+      }
+  
+      if (!passwordRegex.test(password)) {
+        return res.status(400).json({ error: "Password must meet requirements" });
+      }
 
+      const existingUser = await users.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ error: "User already exists" });
+      }
+  
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const walletInfo = await generateWallet();
+      
+      const hashedPrivateKey = await bcrypt.hash(walletInfo.privateKey, 10);
+      const wallet = new Wallet({
+        address: walletInfo.address,
+        privateKey: hashedPrivateKey
+    });
+    await wallet.save();
+      const user = await users.create({
+        name,
+        email,
+        password: hashedPassword,
+        username,
+        created_at: Date.now(),
+        isVerified: false,
+        walletaddress: wallet.address,
+        wallet:wallet._id
+      });
+      wallet.user = user._id;
+      await wallet.save();
+  
+      
+  
+      const token = createSecretToken(user._id);
+
+      res.cookie("token", token, {
+        httpOnly: true,
+   
+      });
+  
+      res.status(201).json({ message: "User created successfully", user });
+    } catch (error) {
+      console.error("Error registering user:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
-    
-})
-
-
+  });
 //Sign in
 router.post("/login", async (req, res, next) => {
     try {
@@ -82,7 +133,7 @@ router.post("/login", async (req, res, next) => {
     }
 });
 
-
+// Update user profile
 router.post("/profile", auth, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -101,7 +152,6 @@ router.post("/profile", auth, async (req, res) => {
             }
         }
 
-        // Update user profile
         const updatedUser = {
             username,
             address,
@@ -122,7 +172,7 @@ router.post("/profile", auth, async (req, res) => {
         res.status(500).json({ msg: "An error occurred during profile update" });
     }
 });
-
+// Delete user profile
 router.delete("/profile", auth, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -140,7 +190,7 @@ router.delete("/profile", auth, async (req, res) => {
         res.status(500).json({ msg: "An error occurred during profile deletion" });
     }
 });
-
+// Logout
 router.post("/logout",auth, (req, res) => {
     try {
         res.clearCookie("token");
@@ -150,6 +200,9 @@ router.post("/logout",auth, (req, res) => {
         res.status(500).json({ msg: "An error occurred during logout" });
     }
 });
+
+
+
 
 
 

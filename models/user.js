@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const schema = mongoose.Schema;
 
+
+
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -46,13 +48,25 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    walletaddress: {
+        type: String,
+        trim: true,
+    },
+    wallet: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Wallet'
+      }
 
 
 })
 
+
 userSchema.pre("save", async function () {
     this.password = await bcrypt.hash(this.password, 12);
   });
+
+
+
 
 
 const Users = mongoose.model("Users", userSchema)
