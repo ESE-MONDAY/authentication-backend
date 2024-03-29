@@ -74,7 +74,7 @@ router.post("/register", async (req, res) => {
       
       const hashedPrivateKey = await bcrypt.hash(walletInfo.privateKey, 10);
       const wallet = new Wallet({
-        userId: null, 
+        user: null, 
         address: walletInfo.address,
         privateKey: hashedPrivateKey
     });
