@@ -1,10 +1,12 @@
-Below is a template for a README.md file for an authentication project built with MongoDB, Express.js, and Node.js:
 
----
 
 # Authentication Project with MongoDB, Express.js, and Node.js
 
 This project is a simple authentication system built using MongoDB for data storage and Express.js for handling server-side logic. It provides user registration, login, and logout functionalities.
+
+## Live Demo
+
+Check out the live demo [here](https://authentication-backend-lc49.onrender.com).
 
 ## Features
 
@@ -13,6 +15,8 @@ This project is a simple authentication system built using MongoDB for data stor
 - User logout: Logged-in users can securely log out of their accounts.
 - Password hashing: Passwords are securely hashed before being stored in the database for improved security.
 - Session management: User sessions are managed using session cookies for authentication.
+- User Profile update: Authorized users can update their profile information.
+
 
 ## Technologies Used
 
@@ -42,6 +46,7 @@ This project is a simple authentication system built using MongoDB for data stor
     ```
     PORT=3000
     MONGODB_URI=<mongodb-uri>
+    TOKEN_KEY=<whateverkeyyoupick>
     ```
 
     Replace `<mongodb-uri>` with the URI of your MongoDB database and `<session-secret>` with a random string used for session encryption.
@@ -59,6 +64,11 @@ This project is a simple authentication system built using MongoDB for data stor
 3. Log in using your credentials.
 4. Perform authenticated actions such as viewing user-specific content.
 5. Log out when you're done.
+
+## Postman Collection
+
+Explore the API endpoints and test the functionality using the [Postman collection documentation](https://documenter.getpostman.com/view/10964379/2sA2xpS9U2).
+
 
 ## Contributing
 
