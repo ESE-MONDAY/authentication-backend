@@ -4,6 +4,7 @@ const walletSchema = new mongoose.Schema({
   address: {
     type: String,
     required: true,
+    unique: true
   },
   privateKey: {
     type: String,
