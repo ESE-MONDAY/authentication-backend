@@ -50,63 +50,65 @@ const clearVerificationToken = (email) => {
 
 
 //Sign up
-
 router.post("/register", async (req, res) => {
     try {
-      let { name, email, password } = req.body;
-      const username = generateUniqueUsername(name, email);
-  
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: "Email is not in the right format" });
-      }
-  
-      if (!passwordRegex.test(password)) {
-        return res.status(400).json({ error: "Password must meet requirements" });
-      }
+        let { name, email, password } = req.body;
+        const username = generateUniqueUsername(name, email);
 
-      const existingUser = await users.findOne({ email });
-      if (existingUser) {
-        return res.status(400).json({ error: "User already exists" });
-      }
-  
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const walletInfo = await generateWallet();
-      
-      const hashedPrivateKey = await bcrypt.hash(walletInfo.privateKey, 10);
-      const wallet = new Wallet({
-        user: null, 
-        address: walletInfo.address,
-        privateKey: hashedPrivateKey
-    });
-    await wallet.save();
-      const user = await users.create({
-        name,
-        email,
-        password: hashedPassword,
-        username,
-        created_at: Date.now(),
-        isVerified: false,
-        walletaddress: wallet.address,
-        wallet:wallet._id
-      });
-      wallet.user = user._id;
-      await wallet.save();
-  
-      
-  
-      const token = createSecretToken(user._id);
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Email is not in the right format" });
+        }
 
-      res.cookie("token", token, {
-        httpOnly: true,
-   
-      });
-  
-      res.status(201).json({ message: "User created successfully", user });
+        if (!passwordRegex.test(password)) {
+            return res.status(400).json({ error: "Password must meet requirements" });
+        }
+
+        const existingUser = await users.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ error: "User already exists" });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await users.create({
+            name,
+            email,
+            password: hashedPassword,
+            username,
+            created_at: Date.now(),
+            isVerified: false,
+        });
+
+        // Create wallet for the user
+        const walletInfo = await generateWallet();
+
+        // Create wallet document
+        const hashedPrivateKey = await bcrypt.hash(walletInfo.privateKey, 10);
+        const wallet = new Wallet({
+            address: walletInfo.address,
+            privateKey: hashedPrivateKey,
+            userId: user._id, 
+        });
+        await wallet.save();
+
+        // Update user with wallet details
+        user.wallet = wallet._id;
+        user.walletaddress = wallet.address;
+        await user.save();
+
+        const token = createSecretToken(user._id);
+        res.cookie("token", token, {
+            httpOnly: true,
+        });
+
+        res.status(201).json({ message: "User created successfully", user });
     } catch (error) {
-      console.error("Error registering user:", error);
-      res.status(500).json({ error: "Internal server error" });
+        console.error("Error registering user:", error);
+        res.status(500).json({ error: "Internal server error" });
     }
-  });
+});
+
+
+
 //Sign in
 router.post("/login", async (req, res, next) => {
     try {

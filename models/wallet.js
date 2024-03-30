@@ -10,12 +10,12 @@ const walletSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  user: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User' 
+    ref: 'Users' 
   }
 });
 
-const Wallet = mongoose.model('Wallet', walletSchema);
+const Wallets = mongoose.model('Wallets', walletSchema);
 
-module.exports = Wallet;
+module.exports = Wallets;

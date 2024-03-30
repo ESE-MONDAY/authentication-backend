@@ -1,6 +1,6 @@
-const { Web3 } = require('web3');
+const {Web3} = require('web3');
 
-const generateWallet = async (userId) => {
+const generateWallet = async () => {
     try {
         const providerUrl = 'https://sepolia.infura.io/v3/dbd371c68313481b91683426c2335b0f';
         const web3 = new Web3(providerUrl);
@@ -17,5 +17,3 @@ const generateWallet = async (userId) => {
 };
 
 module.exports = generateWallet;
-
-  
