@@ -30,23 +30,31 @@ router.post("/create", auth, async (req, res) => {
         });
         await conference.save();
         const user = await users.findById(req.user.id);
-        user.conferencesOrganized.push(conference._id);
-        user.role = "organizer";
-        await user.save();
-
-        const organizer = await Organizers.findOne({ user: req.user.id });
-        if (organizer) {
-            organizer.numConferences++;
-            await organizer.save();
-        } else {
-            await Organizers.create({
-                user: req.user.id,
-                organizer_name: user.username,
-                numConferences: 1
-            });
+        if(user){
+            user.conferencesOrganized.push(conference._id);
+            user.role = "organizer";
+            await user.save();
+            const organizer = await Organizers.findOne({ user: req.user.id });
+            if (organizer) {
+                organizer.numConferences++;
+                await organizer.save();
+            } else {
+                await Organizers.create(
+                    {
+                        user: req.user.id,
+                        organizer_info: {
+                            email: user.email,
+                            walletAddress:user.walletaddress,
+                            fullName: user.name,
+                            avatar: user.avatar
+                        },
+                        numConferences: 1
+                    });
+                }
         }
+       
 
-        res.status(201).json({ message: "Conference created successfully", conference });
+        res.status(201).json({ message: "Conference created successfully", conference});
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

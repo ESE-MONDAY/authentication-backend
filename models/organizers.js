@@ -6,9 +6,22 @@ const organizerSchema = new mongoose.Schema({
         ref: 'Users',
         unique: true
     },
-    organizer_name:{
-        type: String,
-        required: true
+    organizer_info:{
+        email: {
+            type: String,
+            required: true
+        },
+        avatar: {
+            type: String,
+        },
+        fullName: {
+            type: String,
+            required: true
+        },
+        walletAddress: {
+            type: String,
+            required: true
+        }
     },
     numConferences: {
         type: Number,
