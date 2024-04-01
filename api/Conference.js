@@ -60,5 +60,32 @@ router.post("/create", auth, async (req, res) => {
     }
 })
 
+router.get('/all', async (req, res) => {
+    try {
+        const conferences = await Conferences.find();
+        res.status(200).json({msg: "Conferences Fetched Successfully", data: conferences });
+    } catch (error) {
+        console.error('Error fetching conferences:', error);
+        res.status(500).json({ error: 'An error occurred while fetching conferences' });
+    }
+});
+
+router.get("/:id", async (req,res) => {
+    try{
+        const id = req.params.id
+        const conference = await Conferences.findById(id);
+        if(conference){
+            res.status(200).json({msg: "Conference Detail Fetched Successfully", data: conference})
+        }else{
+            res.status(204).json({msg: "Cannot find a conference with that ID"})
+        }
+
+    }catch(error){
+        console.error('Error fetching conferences:', error);
+        res.status(500).json({ error: 'An error occurred while fetching conference data' });
+
+    }
+})
+
 
 module.exports = router;
