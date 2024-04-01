@@ -1,13 +1,15 @@
-
 const nodemailer = require('nodemailer');
+require("dotenv").config(); 
 
 const sendVerificationEmail = async (email, token) => {
-    // Create a nodemailer transporter using your email service provider credentials
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        service: process.env.EMAIL_SERVICE,
+        host: process.env.EMAIL_SERVICE_HOST,
+        secure: false,
+        port: process.env.EMAIL_SERVICE_PORT,
         auth: {
-            user: 'mondayese8@gmail.com',
-            pass: 'Petroleum2'
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
         }
     });
 
@@ -26,4 +28,4 @@ const sendVerificationEmail = async (email, token) => {
     await transporter.sendMail(mailOptions);
 };
 
-module.exports = { sendVerificationEmail };
+module.exports =  sendVerificationEmail ;

@@ -20,10 +20,13 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    role:{
+        type: String,
+        default: "user",
+    },
     password: {
         type: String,
         required: [true, "Your password is required"],
-        trim: true,
     },
     isVerified: {
         type: Boolean,
@@ -55,18 +58,16 @@ const userSchema = new mongoose.Schema({
     wallet: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Wallets'
-      }
+      },
+      conferencesOrganized: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Conference'
+        }
+      ]
 
 
 })
-
-
-userSchema.pre("save", async function () {
-    this.password = await bcrypt.hash(this.password, 12);
-  });
-
-
-
 
 
 const Users = mongoose.model("Users", userSchema)

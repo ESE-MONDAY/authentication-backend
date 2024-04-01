@@ -1,14 +1,15 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
+const crypto = require('crypto');
+
 const { createSecretToken } = require("../config/secretToken");
-
 const auth = require("../middleware.js")
-
 const users = require("../models/user")
 const Wallet = require("../models/wallet")
 
-const generateWallet = require("../config/generateWallet");
+const generateWallet = require("../config/generateSolanaWallet");
 const sendVerificationEmail = require("../config/sendVerificaionEmail");
+
 
 router.get("/", (req,res) =>{
     res.send("user route called")
@@ -25,34 +26,15 @@ function generateUniqueUsername(name, email) {
     return username;
 }
 
-const generateVerificationToken = () => {
-    const token = Math.floor(100000 + Math.random() * 900000);
-    return token.toString(); 
-  };
-
-
-
-const verificationTokens = {};
-
-// Function to save verification token
-const saveVerificationToken = (email, token) => {
-    verificationTokens[email] = token;
-};
-const getVerificationToken = (email) => {
-    return verificationTokens[email];
-};
-
-// Function to clear verification token
-const clearVerificationToken = (email) => {
-    delete verificationTokens[email];
-};
-
 
 
 //Sign up
 router.post("/register", async (req, res) => {
     try {
         let { name, email, password } = req.body;
+        if(!name || !email || !password){
+            return res.status(400).json({ error: "All fields are required" });
+        }
         const username = generateUniqueUsername(name, email);
 
         if (!emailRegex.test(email)) {
@@ -71,7 +53,7 @@ router.post("/register", async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await users.create({
             name,
-            email,
+            email:email.toLowerCase(),
             password: hashedPassword,
             username,
             created_at: Date.now(),
@@ -84,7 +66,7 @@ router.post("/register", async (req, res) => {
         // Create wallet document
         const hashedPrivateKey = await bcrypt.hash(walletInfo.privateKey, 10);
         const wallet = new Wallet({
-            address: walletInfo.address,
+            address: walletInfo.publicKey,
             privateKey: hashedPrivateKey,
             userId: user._id, 
         });
@@ -107,8 +89,6 @@ router.post("/register", async (req, res) => {
     }
 });
 
-
-
 //Sign in
 router.post("/login", async (req, res, next) => {
     try {
@@ -117,13 +97,11 @@ router.post("/login", async (req, res, next) => {
 
         if (!user) {
             return res.status(401).json({ msg: "Incorrect email or password" });
-        }
-
-        const auth = await bcrypt.compare(password, user.password);
+        } 
+       const auth = bcrypt.compareSync(password, user.password);
         if (!auth) {
-            return res.status(401).json({ msg: "Incorrect password" });
+            return res.status(401).json({ msg: "Incorrect password", ss:password, us:user.password});
         }
-
         const token = createSecretToken(user._id);
         res.cookie("token", token, {
             withCredentials: true,
@@ -204,6 +182,47 @@ router.post("/logout",auth, (req, res) => {
     }
 });
 
+
+
+
+
+const generateVerificationToken = () => {
+    const token = Math.floor(100000 + Math.random() * 900000);
+    return token.toString(); 
+  };
+
+
+
+const verificationTokens = {};
+
+// Function to save verification token
+const saveVerificationToken = (email, token) => {
+    verificationTokens[email] = token;
+};
+const getVerificationToken = (email) => {
+    return verificationTokens[email];
+};
+
+// Function to clear verification token
+const clearVerificationToken = (email) => {
+    delete verificationTokens[email];
+};
+
+
+// Route to send verification email
+router.post('/verify', async (req, res) => {
+    try {
+        const { email, token } = req.body;
+
+        // Send verification email
+        await sendVerificationEmail(email, token);
+
+        res.status(200).json({ message: 'Verification email sent successfully' });
+    } catch (error) {
+        console.error('Error sending verification email:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 
