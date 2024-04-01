@@ -5,10 +5,24 @@ const conferenceSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  description:{
+    type: String,
+  },
   date: {
-    type: Date,
+    type: String,
     required: true
   },
+  time:{
+    type: String
+  },
+  link:{
+    type: String,
+  },
+  created_at: {
+    type: Date,
+    default: Date.now
+  },
+ 
   organizedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',

@@ -15,7 +15,6 @@ router.get("/", (req,res) =>{
     res.send("user route called")
 })
 
-
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const passwordRegex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
 
@@ -49,7 +48,6 @@ router.post("/register", async (req, res) => {
         if (existingUser) {
             return res.status(400).json({ error: "User already exists" });
         }
-
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await users.create({
             name,
