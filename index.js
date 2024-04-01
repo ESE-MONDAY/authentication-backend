@@ -34,7 +34,7 @@ app.use("/user", userRouter)
 
 
 const conferenceRouter = require("./api/Conference")
-app.use("/conference", conferenceRouter)
+app.use("/conferences", conferenceRouter)
 
 const organizersRouter = require("./api/Organizers")
 app.use("/organizers", organizersRouter)
