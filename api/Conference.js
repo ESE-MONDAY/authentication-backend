@@ -1,17 +1,17 @@
 const router = require("express").Router();
 const Conferences = require("../models/conference")
-const users = require("../models/user");
+const Users = require("../models/user");
 const Organizers = require("../models/organizers");
 const auth = require("../middleware.js")
 
 router.get("/", (req,res) =>{
     res.send("conference route called")
 })
-
+//Create Conference
 router.post("/create", auth, async (req, res) => {
     try {
-        const { title, description, date, time, link } = req.body;
-        if(!title || !description || !date){
+        const { title, description, date, time, link, location } = req.body;
+        if(!title || !description || !date || !location || !time){
             return res.status(400).json({ error: "All fields are required" });
         }
         const existingConference = await Conferences.findOne({ title });
@@ -23,13 +23,14 @@ router.post("/create", auth, async (req, res) => {
             title,
             description,
             date,
+            location,
             link,
             time,
             created_at: Date.now(),
             organizedBy: req.user.id
         });
         await conference.save();
-        const user = await users.findById(req.user.id);
+        const user = await Users.findById(req.user.id);
         if(user){
             user.conferencesOrganized.push(conference._id);
             user.role = "organizer";
@@ -60,6 +61,7 @@ router.post("/create", auth, async (req, res) => {
     }
 })
 
+// Get All Conferences
 router.get('/all', async (req, res) => {
     try {
         const conferences = await Conferences.find();
@@ -70,6 +72,8 @@ router.get('/all', async (req, res) => {
     }
 });
 
+
+//Get Conference by Id
 router.get("/:id", async (req,res) => {
     try{
         const id = req.params.id
@@ -86,6 +90,40 @@ router.get("/:id", async (req,res) => {
 
     }
 })
+//Delete Conference by Id
+router.delete("/:id", auth, async (req, res) => {
+    try {
+        const conferenceId = req.params.id;
+        const conference = await Conferences.findById(conferenceId);
+        if (!conference) {
+            return res.status(404).json({ error: "Conference not found" });
+        }
+        if (conference.organizedBy.toString() !== req.user.id) {
+            return res.status(401).json({ error: "Unauthorized: You are not the organizer of this conference" });
+        }
+        await Conferences.deleteOne({ _id: conferenceId });
+        const user = await Users.findById(req.user.id);
+        if (user) {
+            user.conferencesOrganized = user.conferencesOrganized.filter(id => id.toString() !== conferenceId);
+            await user.save();
+        }
+        const organizer = await Organizers.findOne({ user: req.user.id });
+        if (organizer) {
+            if (organizer.numConferences === 1) {
+                await Organizers.deleteOne({ user: req.user.id });
+            } else {
+                organizer.numConferences--;
+                await organizer.save();
+            }
+        }
+
+        res.status(200).json({ message: "Conference deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
 
 
 module.exports = router;

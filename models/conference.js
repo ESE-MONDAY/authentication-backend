@@ -22,12 +22,21 @@ const conferenceSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  location: {
+    type: String,
+    required: true
+  },
+  speakers: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Speaker' }], 
+    default: []
+  },
  
   organizedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
     required: true
-  }
+  },
+
 });
 
 const Conferences = mongoose.model('Conferences', conferenceSchema);

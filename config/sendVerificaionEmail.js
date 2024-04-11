@@ -1,11 +1,21 @@
 const nodemailer = require('nodemailer');
 require("dotenv").config(); 
 
-const sendVerificationEmail = async (email, token) => {
+const tokenEmailMap = new Map();
+
+// Generate token
+function generateVerificationToken() {
+    return Math.random().toString(36).substring(2,10); // Token expires in 1 hour
+  }
+
+const sendVerificationEmail = async (email) => {
+
+    const token = generateVerificationToken()
+    tokenEmailMap.set(token, email);
     const transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE,
         host: process.env.EMAIL_SERVICE_HOST,
-        secure: false,
+        secure: true,
         port: process.env.EMAIL_SERVICE_PORT,
         auth: {
             user: process.env.EMAIL_USER,
@@ -15,9 +25,9 @@ const sendVerificationEmail = async (email, token) => {
 
     // Email content
     const mailOptions = {
-        from: 'mondayese8@gmail.com',
+        from: 'ese@nosen.co',
         to: email,
-        subject: 'Email Verification',
+        subject: 'Email Verification ',
         html: `
             <p>Here is your verification code:</p>
             <p><strong>${token}</strong></p>

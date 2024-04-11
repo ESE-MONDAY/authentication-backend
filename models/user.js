@@ -55,6 +55,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    bio: {
+        type: String,
+        required: true
+    },
+    isSpeaker: {
+        type: Boolean,
+        default: false
+    },
     wallet: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Wallets'

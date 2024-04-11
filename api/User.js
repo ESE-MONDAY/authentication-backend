@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const crypto = require('crypto');
+const jwt = require("jsonwebtoken");
 
 const { createSecretToken } = require("../config/secretToken");
 const auth = require("../middleware.js")
@@ -184,10 +185,11 @@ router.post("/logout",auth, (req, res) => {
 
 
 
-const generateVerificationToken = () => {
-    const token = Math.floor(100000 + Math.random() * 900000);
-    return token.toString(); 
-  };
+
+// Generate JWT token
+function generateVerificationToken(email) {
+    return jwt.sign(email, process.env.TOKEN_KEY); // Token expires in 1 hour
+  }
 
 
 
@@ -210,10 +212,11 @@ const clearVerificationToken = (email) => {
 // Route to send verification email
 router.post('/verify', async (req, res) => {
     try {
-        const { email, token } = req.body;
+        const { email} = req.body;
 
         // Send verification email
-        await sendVerificationEmail(email, token);
+       
+        await sendVerificationEmail(email);
 
         res.status(200).json({ message: 'Verification email sent successfully' });
     } catch (error) {
