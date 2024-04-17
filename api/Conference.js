@@ -81,7 +81,7 @@ router.get("/:id", async (req,res) => {
         if(conference){
             res.status(200).json({msg: "Conference Detail Fetched Successfully", data: conference})
         }else{
-            res.status(204).json({msg: "Cannot find a conference with that ID"})
+            res.status(204).json({msg: "Cannot find a conference with that ID", data: null})
         }
 
     }catch(error){

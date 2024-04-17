@@ -1,13 +1,10 @@
 const router = require("express").Router();
 const bcrypt = require("bcryptjs");
 const crypto = require('crypto');
-const jwt = require("jsonwebtoken");
-
 const { createSecretToken } = require("../config/secretToken");
 const auth = require("../middleware.js")
 const users = require("../models/user")
 const Wallet = require("../models/wallet")
-
 const generateWallet = require("../config/generateSolanaWallet");
 const sendVerificationEmail = require("../config/sendVerificaionEmail");
 
@@ -25,8 +22,6 @@ function generateUniqueUsername(name, email) {
     const username = parts[0];
     return username;
 }
-
-
 
 //Sign up
 router.post("/register", async (req, res) => {
@@ -117,7 +112,7 @@ router.post("/login", async (req, res, next) => {
 router.post("/profile", auth, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { username, address, phone, date_of_birth, avatar } = req.body;
+        const { username, address, phone, date_of_birth, avatar,bio } = req.body;
 
         if (username) {
             const existingUsername = await users.findOne({ username });
@@ -137,7 +132,8 @@ router.post("/profile", auth, async (req, res) => {
             address,
             phone,
             date_of_birth,
-            avatar
+            avatar,
+            bio
         };
 
         const updatedUserProfile = await users.findByIdAndUpdate(userId, updatedUser, { new: true });
@@ -183,16 +179,6 @@ router.post("/logout",auth, (req, res) => {
 
 
 
-
-
-
-// Generate JWT token
-function generateVerificationToken(email) {
-    return jwt.sign(email, process.env.TOKEN_KEY); // Token expires in 1 hour
-  }
-
-
-
 const verificationTokens = {};
 
 // Function to save verification token
@@ -213,8 +199,6 @@ const clearVerificationToken = (email) => {
 router.post('/verify', async (req, res) => {
     try {
         const { email} = req.body;
-
-        // Send verification email
        
         await sendVerificationEmail(email);
 
